@@ -24,16 +24,51 @@ export default function ChatWindow({ messages, isLoading, status }: ChatWindowPr
       .join('');
   }
 
+  const isUserScrollingRef = useRef(false);
+
+  // Detect khi user tự scroll lên để đọc lại tin nhắn cũ
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
-    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-    
-    if (status === 'streaming' || status === 'submitted' || distanceFromBottom < 300) {
+    const handleScroll = () => {
+      const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+      // Nếu user scroll cách bottom > 100px -> coi như đang đọc lại
+      isUserScrollingRef.current = distanceFromBottom > 100;
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // ResizeObserver: theo dõi thay đổi kích thước content (do typewriter thêm từ)
+  // Mỗi khi content cao lên -> auto scroll xuống bottom
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    const content = contentRef.current;
+    if (!container || !content) return;
+
+    const observer = new ResizeObserver(() => {
+      // Chỉ auto-scroll nếu user không đang tự scroll lên đọc lại
+      if (!isUserScrollingRef.current) {
+        container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+      }
+    });
+
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, []);
+
+  // Scroll xuống khi có tin nhắn mới hoặc status thay đổi
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    if (status === 'streaming' || status === 'submitted') {
+      isUserScrollingRef.current = false; // Reset khi bắt đầu stream mới
       container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
     }
-  }, [messages, status]);
+  }, [messages.length, status]);
 
   if (messages.length === 0) {
     return (
