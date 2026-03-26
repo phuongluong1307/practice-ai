@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { Typography } from 'antd';
-import ChatWindow from '@/app/components/ChatWindow';
-import ChatInput from '@/app/components/ChatInput';
+import ChatWindow from '@/app/(dashboard)/bai-tap-1/_components/ChatWindow';
+import ChatInput from '@/app/(dashboard)/bai-tap-1/_components/ChatInput';
 
 const { Title } = Typography;
 

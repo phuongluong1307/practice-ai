@@ -1,14 +1,19 @@
 'use client';
 
 import { Menu } from 'antd';
-import { MessageOutlined } from '@ant-design/icons';
+import { BookOutlined, MessageOutlined } from '@ant-design/icons';
 import { usePathname, useRouter } from 'next/navigation';
 
 const menuItems = [
   {
     key: '/bai-tap-1',
     icon: <MessageOutlined />,
-    label: 'Bài 1',
+    label: 'Cô Minh English',
+  },
+  {
+    key: '/bai-tap-2',
+    icon: <BookOutlined />,
+    label: 'Từ điển Cô Lành',
   },
   // Thêm các bài tập khác ở đây sau này
 ];
