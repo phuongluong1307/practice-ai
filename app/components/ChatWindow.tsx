@@ -13,7 +13,6 @@ interface ChatWindowProps {
 }
 export default function ChatWindow({ messages, isLoading, status }: ChatWindowProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
 
   const lastMsg = messages[messages.length - 1];
   let lastMsgText = (lastMsg as any)?.content || '';
@@ -24,51 +23,59 @@ export default function ChatWindow({ messages, isLoading, status }: ChatWindowPr
       .join('');
   }
 
-  const isUserScrollingRef = useRef(false);
+  // ===== AUTO SCROLL: dùng setInterval brute-force =====
+  // Chạy liên tục mỗi 60ms khi đang loading (streaming/submitted)
+  // Dừng lại 3 giây sau khi streaming kết thúc (để typewriter gõ nốt)
+  const statusRef = useRef(status);
+  statusRef.current = status;
 
-  // Detect khi user tự scroll lên để đọc lại tin nhắn cũ
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
-    const handleScroll = () => {
-      const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-      // Nếu user scroll cách bottom > 100px -> coi như đang đọc lại
-      isUserScrollingRef.current = distanceFromBottom > 100;
+    let stopTimer: ReturnType<typeof setTimeout> | null = null;
+    let scrollInterval: ReturnType<typeof setInterval> | null = null;
+
+    const startScrolling = () => {
+      if (scrollInterval) return; // đã chạy rồi
+      scrollInterval = setInterval(() => {
+        container.scrollTop = container.scrollHeight;
+      }, 60);
     };
 
-    container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // ResizeObserver: theo dõi thay đổi kích thước content (do typewriter thêm từ)
-  // Mỗi khi content cao lên -> auto scroll xuống bottom
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    const content = contentRef.current;
-    if (!container || !content) return;
-
-    const observer = new ResizeObserver(() => {
-      // Chỉ auto-scroll nếu user không đang tự scroll lên đọc lại
-      if (!isUserScrollingRef.current) {
-        container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+    const stopScrolling = () => {
+      if (scrollInterval) {
+        clearInterval(scrollInterval);
+        scrollInterval = null;
       }
-    });
+    };
 
-    observer.observe(content);
-    return () => observer.disconnect();
-  }, []);
+    const isActive = status === 'streaming' || status === 'submitted';
 
-  // Scroll xuống khi có tin nhắn mới hoặc status thay đổi
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
+    if (isActive) {
+      // Bắt đầu scroll ngay
+      if (stopTimer) {
+        clearTimeout(stopTimer);
+        stopTimer = null;
+      }
+      startScrolling();
+    } else {
+      // Streaming đã dừng → tiếp tục scroll thêm 3s cho typewriter gõ nốt
+      stopTimer = setTimeout(() => {
+        stopScrolling();
+        // Scroll 1 lần cuối để chắc chắn
+        container.scrollTop = container.scrollHeight;
+      }, 3000);
 
-    if (status === 'streaming' || status === 'submitted') {
-      isUserScrollingRef.current = false; // Reset khi bắt đầu stream mới
-      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+      // Vẫn giữ scrolling trong 3s chờ typewriter
+      startScrolling();
     }
-  }, [messages.length, status]);
+
+    return () => {
+      stopScrolling();
+      if (stopTimer) clearTimeout(stopTimer);
+    };
+  }, [status, messages.length]);
 
   if (messages.length === 0) {
     return (
@@ -100,7 +107,6 @@ export default function ChatWindow({ messages, isLoading, status }: ChatWindowPr
       }}
     >
       <div
-        ref={contentRef}
         style={{
           maxWidth: 900,
           margin: '0 auto',

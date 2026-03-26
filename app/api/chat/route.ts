@@ -1,5 +1,5 @@
 import { streamText } from 'ai';
-import { google } from '@ai-sdk/google';
+import { openai } from '@ai-sdk/openai';
 import { SYSTEM_PROMPT } from '@/app/lib/system-prompt';
 
 export async function POST(req: Request) {
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
   const recentMessages = modelMessages.slice(-20); // Tăng giới hạn tin nhắn gần đây
 
   const result = streamText({
-    model: google('gemini-2.5-flash'),
+    model: openai('gpt-4o-mini'),
     system: SYSTEM_PROMPT,
     messages: recentMessages,
   });
