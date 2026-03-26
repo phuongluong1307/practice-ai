@@ -1,7 +1,9 @@
 'use client';
 
+import { useRef, useEffect } from 'react';
 import { Input, Button, Space } from 'antd';
 import { SendOutlined } from '@ant-design/icons';
+import type { InputRef } from 'antd';
 
 interface ChatInputProps {
   input: string;
@@ -16,10 +18,21 @@ export default function ChatInput({
   onSend,
   isLoading,
 }: ChatInputProps) {
+  const inputRef = useRef<InputRef>(null);
+
+  // Re-focus input khi bot trả lời xong (isLoading: true -> false)
+  useEffect(() => {
+    if (!isLoading) {
+      inputRef.current?.focus();
+    }
+  }, [isLoading]);
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       onSend();
+      // Focus lại ngay sau khi gửi
+      setTimeout(() => inputRef.current?.focus(), 0);
     }
   };
 
@@ -46,6 +59,8 @@ export default function ChatInput({
         }}
       >
         <Input
+          ref={inputRef}
+          autoFocus
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Nhắn tin cho Cô Minh..."
@@ -65,7 +80,10 @@ export default function ChatInput({
           icon={<SendOutlined />}
           loading={isLoading}
           disabled={!input.trim()}
-          onClick={onSend}
+          onClick={() => {
+            onSend();
+            setTimeout(() => inputRef.current?.focus(), 0);
+          }}
           style={{
             width: 40,
             height: 40,
