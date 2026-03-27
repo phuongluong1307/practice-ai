@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useChat } from '@ai-sdk/react';
-import { Typography } from 'antd';
+import { Typography, Button, Tooltip } from 'antd';
+import { ClearOutlined } from '@ant-design/icons';
 import ChatWindow from '@/app/(dashboard)/bai-tap-1/_components/ChatWindow';
 import ChatInput from '@/app/(dashboard)/bai-tap-1/_components/ChatInput';
 
@@ -20,7 +21,7 @@ export default function BaiTap1Page() {
         {
           id: String(Date.now()),
           role: 'assistant',
-          content: 'Có gì đó không ổn rồi 😅 Let’s try again nha em!',
+          content: 'Có gì đó không ổn rồi 😅 Let\'s try again nha em!',
         }
       ]);
     }
@@ -32,6 +33,11 @@ export default function BaiTap1Page() {
     const trimmed = input.trim();
     if (!trimmed || isLoading) return;
     sendMessage({ text: trimmed });
+    setInput('');
+  };
+
+  const handleClearChat = () => {
+    setMessages([]);
     setInput('');
   };
 
@@ -55,13 +61,24 @@ export default function BaiTap1Page() {
           backgroundColor: '#fff',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
+          justifyContent: 'space-between',
           flexShrink: 0,
         }}
       >
+        {/* Spacer bên trái để giữ title ở giữa */}
+        <div style={{ width: 36 }} />
         <Title level={4} style={{ margin: 0, fontSize: 18, color: '#1f1f1f' }}>
           💬 Cô Minh English
         </Title>
+        <Tooltip title="Làm mới cuộc trò chuyện">
+          <Button
+            type="primary"
+            onClick={handleClearChat}
+            style={{ color: '#fff' }}
+          >
+            Làm mới
+          </Button>
+        </Tooltip>
       </div>
 
       {/* Chat Window - chỉ khu vực này scroll */}

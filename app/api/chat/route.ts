@@ -1,6 +1,6 @@
 import { streamText } from 'ai';
 import { openai } from '@ai-sdk/openai';
-import { SYSTEM_PROMPT } from '@/app/lib/system-prompt';
+import { SYSTEM_PROMPT } from '@/app/(dashboard)/bai-tap-1/_lib/system-prompt';
 
 export async function POST(req: Request) {
   const { messages } = await req.json();
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       content: text || ''
     };
   });
-  
+
   const recentMessages = modelMessages.slice(-20); // Tăng giới hạn tin nhắn gần đây
 
   const result = streamText({

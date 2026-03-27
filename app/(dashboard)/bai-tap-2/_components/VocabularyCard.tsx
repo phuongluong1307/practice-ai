@@ -1,8 +1,9 @@
 'use client';
 
-import { Card, Descriptions, Tag, List, Typography, Alert } from 'antd';
+import { useState, useCallback } from 'react';
+import { Card, Descriptions, Tag, List, Typography, Alert, Tooltip } from 'antd';
 import { SoundOutlined } from '@ant-design/icons';
-import type { VocabularyResult } from '@/app/lib/dictionary-schema';
+import type { VocabularyResult } from '@/app/(dashboard)/bai-tap-2/_lib/dictionary-schema';
 
 const { Title, Text } = Typography;
 
@@ -17,6 +18,40 @@ interface VocabularyCardProps {
 }
 
 export default function VocabularyCard({ data }: VocabularyCardProps) {
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  const playPronunciation = useCallback((text: string) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
+    // Dừng nếu đang phát
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.85; // Tốc độ chậm hơn một chút để nghe rõ hơn
+    utterance.pitch = 1;
+    utterance.volume = 1;
+
+    // Ưu tiên giọng tiếng Anh tự nhiên
+    const voices = window.speechSynthesis.getVoices();
+    const englishVoice = voices.find(
+      (v) => v.lang.startsWith('en') && v.name.toLowerCase().includes('natural')
+    ) || voices.find(
+      (v) => v.lang.startsWith('en-US')
+    ) || voices.find(
+      (v) => v.lang.startsWith('en')
+    );
+    if (englishVoice) {
+      utterance.voice = englishVoice;
+    }
+
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    window.speechSynthesis.speak(utterance);
+  }, []);
+
   return (
     <Card
       style={{
@@ -29,7 +64,7 @@ export default function VocabularyCard({ data }: VocabularyCardProps) {
     >
       {data.is_corrected && data.original_input && (
         <Alert
-          message={<span>Bạn có phải ý là: <b style={{ fontSize: 16 }}>{data.word}</b>? (Từ bạn nhập <i>&ldquo;{data.original_input}&rdquo;</i> chưa chính xác)</span>}
+          title={<span>Bạn có phải ý là: <b style={{ fontSize: 16 }}>{data.word}</b>? (Từ bạn nhập <i>&ldquo;{data.original_input}&rdquo;</i> chưa chính xác)</span>}
           type="warning"
           showIcon
           style={{ marginBottom: 20, borderRadius: 8 }}
@@ -48,16 +83,45 @@ export default function VocabularyCard({ data }: VocabularyCardProps) {
         <Title level={2} style={{ margin: 0, color: '#1677ff' }}>
           {data.word}
         </Title>
-        <Text
-          style={{
-            fontSize: 16,
-            color: '#8c8c8c',
-            fontStyle: 'italic',
-          }}
-        >
-          <SoundOutlined style={{ marginRight: 4 }} />
-          {data.phonetic}
-        </Text>
+        <Tooltip title="Nhấn để nghe phát âm">
+          <span
+            onClick={() => playPronunciation(data.word)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 16,
+              color: isSpeaking ? '#1677ff' : '#8c8c8c',
+              fontStyle: 'italic',
+              cursor: 'pointer',
+              padding: '4px 8px',
+              borderRadius: 8,
+              transition: 'all 0.3s ease',
+              backgroundColor: isSpeaking ? '#e6f4ff' : 'transparent',
+            }}
+            onMouseEnter={(e) => {
+              if (!isSpeaking) {
+                e.currentTarget.style.color = '#1677ff';
+                e.currentTarget.style.backgroundColor = '#e6f4ff';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isSpeaking) {
+                e.currentTarget.style.color = '#8c8c8c';
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }
+            }}
+          >
+            <SoundOutlined
+              style={{
+                marginRight: 4,
+                fontSize: 18,
+                animation: isSpeaking ? 'pulse 1s infinite' : 'none',
+              }}
+            />
+            {data.phonetic}
+          </span>
+        </Tooltip>
         <Tag
           color={levelColorMap[data.level] || 'default'}
           style={{
@@ -68,6 +132,18 @@ export default function VocabularyCard({ data }: VocabularyCardProps) {
           }}
         >
           {data.level}
+        </Tag>
+        <Tag
+          color="purple"
+          style={{
+            fontSize: 13,
+            padding: '2px 12px',
+            borderRadius: 12,
+            fontWeight: 600,
+            fontStyle: 'italic',
+          }}
+        >
+          {data.part_of_speech}
         </Tag>
       </div>
 
@@ -114,7 +190,7 @@ export default function VocabularyCard({ data }: VocabularyCardProps) {
                 }}
               >
                 <Text>
-                  <Tag color="blue" style={{ borderRadius: 8 }}>
+                  <Tag color="blue" style={{ borderRadius: 8, marginRight: 8 }}>
                     {index + 1}
                   </Tag>
                   {note}

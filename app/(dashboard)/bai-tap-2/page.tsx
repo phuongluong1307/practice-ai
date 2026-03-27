@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Input, Typography, Skeleton, message, Empty } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
 import VocabularyCard from '@/app/(dashboard)/bai-tap-2/_components/VocabularyCard';
-import type { VocabularyResult } from '@/app/lib/dictionary-schema';
+import type { VocabularyResult } from '@/app/(dashboard)/bai-tap-2/_lib/dictionary-schema';
 
 const { Title, Text } = Typography;
 const { Search } = Input;

@@ -5,6 +5,7 @@ export const vocabularySchema = z.object({
   original_input: z.string().describe('Từ gốc mà user đã nhập'),
   is_corrected: z.boolean().describe('true nếu từ user nhập bị sai chính tả và đã được sửa, false nếu đúng'),
   phonetic: z.string().describe('Phiên âm IPA, ví dụ: /ˌserənˈdɪpɪti/'),
+  part_of_speech: z.string().describe('Loại từ: noun, verb, adjective, adverb, preposition,...'),
   meaning: z.string().describe('Nghĩa tiếng Việt - giải thích hài hước, dí dỏm kiểu Cô Lành'),
   example: z.string().describe('Câu ví dụ bằng tiếng Anh - nhây bựa, hài hước'),
   grammar_notes: z.array(z.string()).describe('Danh sách các lưu ý ngữ pháp liên quan đến từ này'),
