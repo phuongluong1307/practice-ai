@@ -10,6 +10,7 @@ interface ChatInputProps {
   setInput: (value: string) => void;
   onSend: () => void;
   isLoading: boolean;
+  assistantName?: string;
 }
 
 export default function ChatInput({
@@ -17,6 +18,7 @@ export default function ChatInput({
   setInput,
   onSend,
   isLoading,
+  assistantName = 'Minh',
 }: ChatInputProps) {
   const inputRef = useRef<InputRef>(null);
 
@@ -63,7 +65,7 @@ export default function ChatInput({
           autoFocus
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Nhắn tin cho Cô Minh..."
+          placeholder={`Nhắn tin cho Cô ${assistantName}...`}
           variant="borderless"
           size="large"
           disabled={isLoading}

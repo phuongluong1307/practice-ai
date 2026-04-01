@@ -10,8 +10,11 @@ interface ChatWindowProps {
   messages: UIMessage[];
   isLoading?: boolean;
   status?: string;
+  assistantName?: string;
+  onDiscordSend?: () => void;
+  onFuelRequest?: () => void;
 }
-export default function ChatWindow({ messages, isLoading, status }: ChatWindowProps) {
+export default function ChatWindow({ messages, isLoading, status, assistantName = 'Minh', onDiscordSend, onFuelRequest }: ChatWindowProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const lastMsg = messages[messages.length - 1];
@@ -83,12 +86,55 @@ export default function ChatWindow({ messages, isLoading, status }: ChatWindowPr
         style={{
           flex: 1,
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           minHeight: 'calc(100svh - 160px)'
         }}
       >
-        <Empty description="Hãy bắt đầu cuộc trò chuyện với Cô Minh! 📚" />
+        <Empty 
+          description={`Hãy bắt đầu cuộc trò chuyện với Cô ${assistantName}! 📚`} 
+          style={{ marginBottom: 20 }}
+        />
+        {onFuelRequest && (
+          <div style={{ textAlign: 'center', marginTop: -10 }}>
+            <button
+              onClick={onFuelRequest}
+              className="quick-action-btn"
+              style={{
+                background: 'linear-gradient(135deg, #722ed1 0%, #9254de 100%)',
+                color: 'white',
+                border: 'none',
+                padding: '12px 24px',
+                borderRadius: '12px',
+                fontSize: '15px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                margin: '0 auto',
+                boxShadow: '0 4px 15px rgba(114, 46, 209, 0.3)',
+              }}
+            >
+              <span style={{ fontSize: 20 }}>⛽</span>
+              Tra cứu giá xăng ngay
+            </button>
+            <style>{`
+              .quick-action-btn {
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+              }
+              .quick-action-btn:hover {
+                transform: translateY(-2px) scale(1.02);
+                box-shadow: 0 6px 20px rgba(114, 46, 209, 0.4);
+                filter: brightness(1.1);
+              }
+              .quick-action-btn:active {
+                transform: translateY(0) scale(1);
+              }
+            `}</style>
+          </div>
+        )}
       </div>
     );
   }
@@ -133,12 +179,23 @@ export default function ChatWindow({ messages, isLoading, status }: ChatWindowPr
           return null;
         }
 
+        const hasFuelResult = isAssistant && (
+          (msg as any).parts?.some(
+            (p: any) => p.type === 'tool-invocation' && p.toolName === 'get_fuel_prices' && p.state === 'result'
+          ) || 
+          displayContent.includes('Giá Xăng Trong Nước') || 
+          displayContent.includes('Giá Dầu Quốc Tế')
+        );
+
         return (
           <ChatMessage
             key={msg.id}
             role={msg.role as 'user' | 'assistant'}
             content={displayContent}
             isStreaming={isLast && isAssistant && isStreaming}
+            assistantName={assistantName}
+            showDiscordButton={!!onDiscordSend && !!hasFuelResult && !isStreaming}
+            onDiscordSend={onDiscordSend}
           />
         );
       })}

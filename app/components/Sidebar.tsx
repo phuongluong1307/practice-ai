@@ -1,8 +1,9 @@
 'use client';
 
 import { Menu } from 'antd';
-import { BookOutlined, MessageOutlined } from '@ant-design/icons';
+import { BookOutlined, MessageOutlined, ThunderboltOutlined, LogoutOutlined } from '@ant-design/icons';
 import { usePathname, useRouter } from 'next/navigation';
+import { message } from 'antd';
 
 const menuItems = [
   {
@@ -15,19 +16,39 @@ const menuItems = [
     icon: <BookOutlined />,
     label: 'Từ điển Cô Lành',
   },
-  // Thêm các bài tập khác ở đây sau này
+  {
+    key: '/bai-tap-3',
+    icon: <ThunderboltOutlined />,
+    label: 'Kiều Giá Xăng',
+  },
+  {
+    key: 'logout',
+    icon: <LogoutOutlined />,
+    label: 'Đăng xuất',
+    danger: true,
+  },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
 
+  const handleMenuClick = ({ key }: { key: string }) => {
+    if (key === 'logout') {
+      localStorage.removeItem('isLoggedIn');
+      message.success('Đã đăng xuất thành công!');
+      router.push('/login');
+      return;
+    }
+    router.push(key);
+  };
+
   return (
     <Menu
       mode="inline"
       selectedKeys={[pathname]}
       items={menuItems}
-      onClick={({ key }) => router.push(key)}
+      onClick={handleMenuClick}
       style={{ height: '100%', borderRight: 0 }}
     />
   );
