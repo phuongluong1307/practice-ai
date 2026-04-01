@@ -137,12 +137,6 @@ export async function POST(req: Request) {
   const body = await req.json();
   const { messages, webhookUrl: clientWebhook } = body;
 
-  console.log('>>> [API/FUEL] Received payload:', {
-    messageCount: messages?.length,
-    hasWebhook: !!clientWebhook,
-    webhookUrl: clientWebhook ? `${clientWebhook.slice(0, 20)}...` : 'MISSING',
-  });
-
   const modelMessages = messages.map((msg: any) => {
     let text = msg.content;
     if (!text && msg.parts) {
@@ -202,10 +196,6 @@ export async function POST(req: Request) {
         execute: async ({ content }: { content: string }) => {
           // CHỈ lấy từ client (truyền lên từ localStorage của trình duyệt)
           const webhookUrl = clientWebhook;
-
-          console.log('>>> [API/FUEL] Tool send_discord_report called. Webhook source:', 
-            clientWebhook ? 'CLIENT (PROVIDED)' : 'NONE (MISSING)'
-          );
 
           if (!webhookUrl || webhookUrl.includes('YOUR_WEBHOOK')) {
             return {

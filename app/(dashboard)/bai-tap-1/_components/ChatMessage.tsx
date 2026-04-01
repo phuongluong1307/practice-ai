@@ -1,8 +1,9 @@
 'use client';
 
-import { Avatar, Typography, Button } from 'antd';
-import { UserOutlined, RobotOutlined } from '@ant-design/icons';
+import { Avatar, Typography, Button, Tag, Space, Spin } from 'antd';
+import { UserOutlined, RobotOutlined, LoadingOutlined, CheckCircleOutlined, ToolOutlined } from '@ant-design/icons';
 import { useTypewriter } from '@/app/hooks/useTypewriter';
+import type { UIToolInvocation } from 'ai';
 import React from 'react';
 
 const { Text } = Typography;
@@ -14,6 +15,7 @@ interface ChatMessageProps {
   assistantName?: string;
   showDiscordButton?: boolean;
   onDiscordSend?: () => void;
+  toolInvocations?: UIToolInvocation<any>[];
 }
 
 function renderInline(text: string): React.ReactNode[] {
@@ -149,11 +151,75 @@ function renderMarkdown(text: string): React.ReactNode[] {
     );
     i++;
   }
-
   return result;
 }
 
-export default function ChatMessage({ role, content, isStreaming, assistantName = 'Cô Minh 📚', showDiscordButton, onDiscordSend }: ChatMessageProps) {
+function renderToolInvocation(toolInvocation: any) {
+  const toolName = toolInvocation.toolName || (toolInvocation.type?.startsWith('tool-') ? toolInvocation.type.slice(5) : 'tool');
+  const { toolCallId, state } = toolInvocation;
+
+  // Trạng thái đang thực thi (calling)
+  if (state === 'input-streaming' || state === 'input-available') {
+    return (
+      <Tag
+        key={toolCallId}
+        icon={<Spin indicator={<LoadingOutlined style={{ fontSize: 14, color: '#722ed1' }} spin />} />}
+        style={{
+          padding: '4px 12px',
+          borderRadius: '8px',
+          backgroundColor: '#f9f0ff',
+          border: '1px solid #d3adf7',
+          color: '#722ed1',
+          fontSize: '13px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          marginBottom: '8px',
+          width: 'fit-content'
+        }}
+      >
+        <span>Kiều đang thực thi <strong>{toolName}</strong>...</span>
+      </Tag>
+    );
+  }
+
+  // Trạng thái đã hoàn thành (result)
+  if (state === 'output-available') {
+    return (
+      <Tag
+        key={toolCallId}
+        icon={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
+        style={{
+          padding: '4px 12px',
+          borderRadius: '8px',
+          backgroundColor: '#f6ffed',
+          border: '1px solid #b7eb8f',
+          color: '#52c41a',
+          fontSize: '13px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          marginBottom: '8px',
+          width: 'fit-content'
+        }}
+      >
+        <span>Đã xử lý <strong>{toolName}</strong></span>
+      </Tag>
+    );
+  }
+
+  return null;
+}
+
+export default function ChatMessage({ 
+  role, 
+  content, 
+  isStreaming, 
+  assistantName = 'Cô Minh 📚', 
+  showDiscordButton, 
+  onDiscordSend,
+  toolInvocations 
+}: ChatMessageProps) {
   const isUser = role === 'user';
 
   const displayText = useTypewriter(
@@ -223,6 +289,14 @@ export default function ChatMessage({ role, content, isStreaming, assistantName 
             border: isUser ? 'none' : '1px solid #f0f0f0',
           }}
         >
+          {!isUser && toolInvocations && toolInvocations.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                {toolInvocations.map(renderToolInvocation)}
+              </Space>
+            </div>
+          )}
+
           {isUser ? (
             <Text style={{ color: '#fff', whiteSpace: 'pre-wrap' }}>{content}</Text>
           ) : (

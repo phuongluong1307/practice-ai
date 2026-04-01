@@ -173,9 +173,14 @@ export default function ChatWindow({ messages, isLoading, status, assistantName 
         const isLast = index === messages.length - 1;
         const isAssistant = msg.role === 'assistant';
 
+        const toolInvocations = msg.parts?.filter(
+          (p: any) => p.type.startsWith('tool-') || p.type === 'dynamic-tool' || p.type === 'tool-invocation'
+        ) as any[];
+
         const displayContent = textContent;
 
-        if (isLast && isAssistant && isStreaming && !displayContent) {
+        // Cho phép hiển thị nếu có text HOẶC có tool invocations
+        if (isLast && isAssistant && isStreaming && !displayContent && (!toolInvocations || toolInvocations.length === 0)) {
           return null;
         }
 
@@ -196,12 +201,13 @@ export default function ChatWindow({ messages, isLoading, status, assistantName 
             assistantName={assistantName}
             showDiscordButton={!!onDiscordSend && !!hasFuelResult && !isStreaming}
             onDiscordSend={onDiscordSend}
+            toolInvocations={toolInvocations}
           />
         );
       })}
 
-      {/* Typing indicator: hiện khi vừa gửi (submitted) HOẶC đang streaming nhưng bot chưa có text */}
-      {(isSubmitted || (isStreaming && !lastMsgText)) && (
+      {/* Typing indicator: hiện khi vừa gửi (submitted) HOẶC đang streaming nhưng bot CHƯA có text và CHƯA có tool nào hiện lên */}
+      {(isSubmitted || (isStreaming && !lastMsgText && (!lastMsg?.parts?.some((p: any) => p.type.startsWith('tool-') || p.type === 'dynamic-tool' || p.type === 'tool-invocation')))) && (
         <div
           style={{
             display: 'flex',
