@@ -1,7 +1,8 @@
 'use client';
 
-import { Avatar, Typography, Button, Tag, Space, Spin } from 'antd';
-import { UserOutlined, RobotOutlined, LoadingOutlined, CheckCircleOutlined, ToolOutlined } from '@ant-design/icons';
+import { useState } from 'react';
+import { Avatar, Typography, Button, Tag, Space, Spin, Collapse } from 'antd';
+import { UserOutlined, RobotOutlined, LoadingOutlined, CheckCircleOutlined, ToolOutlined, RightOutlined } from '@ant-design/icons';
 import { useTypewriter } from '@/app/hooks/useTypewriter';
 import type { UIToolInvocation } from 'ai';
 import React from 'react';
@@ -154,61 +155,168 @@ function renderMarkdown(text: string): React.ReactNode[] {
   return result;
 }
 
-function renderToolInvocation(toolInvocation: any) {
+function ToolInvocationItem({ toolInvocation }: { toolInvocation: any }) {
+  const [expanded, setExpanded] = useState(false);
   const toolName = toolInvocation.toolName || (toolInvocation.type?.startsWith('tool-') ? toolInvocation.type.slice(5) : 'tool');
   const { toolCallId, state } = toolInvocation;
 
-  // Trạng thái đang thực thi (calling)
-  if (state === 'input-streaming' || state === 'input-available') {
-    return (
-      <Tag
-        key={toolCallId}
-        icon={<Spin indicator={<LoadingOutlined style={{ fontSize: 14, color: '#722ed1' }} spin />} />}
+  const isLoading = state === 'input-streaming' || state === 'input-available';
+  const isDone = state === 'output-available';
+
+  if (!isLoading && !isDone) return null;
+
+  const hasInput = true;
+  const hasOutput = isDone && toolInvocation.output !== undefined;
+  const hasDetails = true;
+
+  const formatJson = (data: any) => {
+    try {
+      return JSON.stringify(data, null, 2);
+    } catch {
+      return String(data);
+    }
+  };
+
+  const formatOutput = (output: any) => {
+    if (output === null || output === undefined) return '{}';
+    try {
+      const result: Record<string, any> = {};
+      if (typeof output === 'object') {
+        result.success = output.success ?? (output.error ? false : true);
+        if (output.message) result.message = output.message;
+        if (output.error) result.message = output.error;
+        if (!result.message) {
+          result.message = result.success ? 'Thành công' : 'Thất bại';
+        }
+      } else {
+        result.success = true;
+        result.message = String(output);
+      }
+      return JSON.stringify(result, null, 2);
+    } catch {
+      return String(output);
+    }
+  };
+
+  return (
+    <div
+      key={toolCallId}
+      style={{
+        marginBottom: 8,
+        borderRadius: 8,
+        border: '1px solid #e8e8e8',
+        backgroundColor: '#fafafa',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Header - collapsible */}
+      <div
+        onClick={() => hasDetails && setExpanded(!expanded)}
         style={{
-          padding: '4px 12px',
-          borderRadius: '8px',
-          backgroundColor: '#f9f0ff',
-          border: '1px solid #d3adf7',
-          color: '#722ed1',
-          fontSize: '13px',
           display: 'flex',
           alignItems: 'center',
-          gap: '8px',
-          marginBottom: '8px',
-          width: 'fit-content'
+          gap: 8,
+          padding: '8px 12px',
+          cursor: hasDetails ? 'pointer' : 'default',
+          userSelect: 'none',
+          backgroundColor: '#f5f5f5',
+          borderBottom: expanded ? '1px solid #e8e8e8' : 'none',
         }}
       >
-        <span>Kiều đang thực thi <strong>{toolName}</strong>...</span>
-      </Tag>
-    );
-  }
+        {isLoading ? (
+          <Spin indicator={<LoadingOutlined style={{ fontSize: 14, color: '#52c41a' }} spin />} />
+        ) : (
+          <CheckCircleOutlined style={{ fontSize: 14, color: '#52c41a' }} />
+        )}
+        <span style={{ flex: 1, fontSize: 13, fontFamily: 'monospace', color: '#333', fontWeight: 500 }}>
+          {toolName}
+        </span>
+        {hasDetails && (
+          <RightOutlined
+            style={{
+              fontSize: 10,
+              color: '#999',
+              transition: 'transform 0.2s',
+              transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+            }}
+          />
+        )}
+      </div>
 
-  // Trạng thái đã hoàn thành (result)
-  if (state === 'output-available') {
-    return (
-      <Tag
-        key={toolCallId}
-        icon={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
-        style={{
-          padding: '4px 12px',
-          borderRadius: '8px',
-          backgroundColor: '#f6ffed',
-          border: '1px solid #b7eb8f',
-          color: '#52c41a',
-          fontSize: '13px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          marginBottom: '8px',
-          width: 'fit-content'
-        }}
-      >
-        <span>Đã xử lý <strong>{toolName}</strong></span>
-      </Tag>
-    );
-  }
+      {/* Body - INPUT / OUTPUT */}
+      {expanded && hasDetails && (
+        <div style={{ padding: '10px 12px', fontSize: 13, fontFamily: 'monospace' }}>
+          {hasInput && (
+            <div style={{ marginBottom: hasOutput ? 12 : 0 }}>
+              <div
+                style={{
+                  fontWeight: 700,
+                  fontSize: 11,
+                  textTransform: 'uppercase',
+                  color: '#d4380d',
+                  marginBottom: 4,
+                  borderLeft: '3px solid #d4380d',
+                  paddingLeft: 8,
+                }}
+              >
+                Input
+              </div>
+              <pre
+                style={{
+                  margin: 0,
+                  padding: 8,
+                  backgroundColor: '#fff',
+                  borderRadius: 4,
+                  fontSize: 12,
+                  lineHeight: 1.5,
+                  overflowX: 'auto',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  color: '#333',
+                }}
+              >
+                {formatJson(toolInvocation.input || {})}
+              </pre>
+            </div>
+          )}
 
-  return null;
+          {hasOutput && (
+            <div>
+              <div
+                style={{
+                  fontWeight: 700,
+                  fontSize: 11,
+                  textTransform: 'uppercase',
+                  color: '#389e0d',
+                  marginBottom: 4,
+                  borderLeft: '3px solid #389e0d',
+                  paddingLeft: 8,
+                }}
+              >
+                Output
+              </div>
+              <pre
+                style={{
+                  margin: 0,
+                  padding: 8,
+                  backgroundColor: '#fff',
+                  borderRadius: 4,
+                  fontSize: 12,
+                  lineHeight: 1.5,
+                  overflowX: 'auto',
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  color: '#333',
+                }}
+              >
+                {formatOutput(toolInvocation.output)}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function ChatMessage({ 
@@ -270,7 +378,19 @@ export default function ChatMessage({
           {isUser ? 'Bạn' : assistantName}
         </Text>
 
-        {/* Bóng chat */}
+        {/* Tool invocations - hiển thị NGOÀI bubble, dạng standalone panels */}
+        {!isUser && toolInvocations && toolInvocations.length > 0 && (
+          <div style={{ marginBottom: 4 }}>
+            <Space direction="vertical" size={4} style={{ width: '100%' }}>
+              {toolInvocations.map((ti: any, idx: number) => (
+                <ToolInvocationItem key={ti.toolCallId || idx} toolInvocation={ti} />
+              ))}
+            </Space>
+          </div>
+        )}
+
+        {/* Bóng chat - chỉ hiển thị nếu có nội dung text */}
+        {(isUser || content) && (
         <div
           style={{
             padding: '12px 16px',
@@ -289,13 +409,6 @@ export default function ChatMessage({
             border: isUser ? 'none' : '1px solid #f0f0f0',
           }}
         >
-          {!isUser && toolInvocations && toolInvocations.length > 0 && (
-            <div style={{ marginBottom: 12 }}>
-              <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                {toolInvocations.map(renderToolInvocation)}
-              </Space>
-            </div>
-          )}
 
           {isUser ? (
             <Text style={{ color: '#fff', whiteSpace: 'pre-wrap' }}>{content}</Text>
@@ -363,6 +476,7 @@ export default function ChatMessage({
             </div>
           )}
         </div>
+        )}
       </div>
 
       {/* Avatar bên phải cho user */}

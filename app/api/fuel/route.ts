@@ -157,27 +157,40 @@ export async function POST(req: Request) {
       get_fuel_prices: tool({
         description:
           'Lấy giá xăng dầu mới nhất gồm: giá trong nước (PVOIL) và giá quốc tế (Brent, WTI). Dùng tool này khi user hỏi về giá xăng dầu.',
-        inputSchema: z.object({}),
-        execute: async () => {
+        inputSchema: z.object({
+          query: z.string().describe('Mô tả chi tiết yêu cầu tra cứu: Lấy giá xăng dầu mới nhất gồm loại xăng dầu cần tra (RON 95, E5 RON 92, Diesel, Brent, WTI...), thị trường (trong nước/quốc tế), và mục đích tra cứu của user'),
+          type: z
+            .enum(['all', 'domestic', 'international'])
+            .default('all')
+            .describe('Loại giá cần tra: all = tất cả, domestic = chỉ giá trong nước, international = chỉ giá quốc tế'),
+        }),
+        execute: async ({ type }) => {
+          const shouldFetchDomestic = type === 'all' || type === 'domestic';
+          const shouldFetchInternational = type === 'all' || type === 'international';
+
           const [domesticResult, internationalResult] = await Promise.allSettled([
-            scrapeDomesticPrices(),
-            scrapeInternationalPrices(),
+            shouldFetchDomestic ? scrapeDomesticPrices() : Promise.resolve(null),
+            shouldFetchInternational ? scrapeInternationalPrices() : Promise.resolve(null),
           ]);
 
           return {
             timestamp: getTimestamp(),
-            domestic: {
-              success: domesticResult.status === 'fulfilled',
-              source: 'https://www.pvoil.com.vn/tin-gia-xang-dau',
-              data: domesticResult.status === 'fulfilled' ? domesticResult.value : null,
-              error: domesticResult.status === 'rejected' ? domesticResult.reason?.message : null,
-            },
-            international: {
-              success: internationalResult.status === 'fulfilled',
-              source: 'https://oilprice.com/oil-price-charts/',
-              data: internationalResult.status === 'fulfilled' ? internationalResult.value : null,
-              error: internationalResult.status === 'rejected' ? internationalResult.reason?.message : null,
-            },
+            domestic: shouldFetchDomestic
+              ? {
+                  success: domesticResult.status === 'fulfilled',
+                  source: 'https://www.pvoil.com.vn/tin-gia-xang-dau',
+                  data: domesticResult.status === 'fulfilled' ? domesticResult.value : null,
+                  error: domesticResult.status === 'rejected' ? domesticResult.reason?.message : null,
+                }
+              : { skipped: true },
+            international: shouldFetchInternational
+              ? {
+                  success: internationalResult.status === 'fulfilled',
+                  source: 'https://oilprice.com/oil-price-charts/',
+                  data: internationalResult.status === 'fulfilled' ? internationalResult.value : null,
+                  error: internationalResult.status === 'rejected' ? internationalResult.reason?.message : null,
+                }
+              : { skipped: true },
             note: 'Trình bày đúng định dạng bảng markdown với 3 bảng: Giá trong nước, Giá quốc tế, Tổng hợp so sánh. Dùng timestamp ở trên làm thời gian cập nhật.',
           };
         },
